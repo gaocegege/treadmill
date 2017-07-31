@@ -29,7 +29,7 @@ def _all_ge(left, right):
 
 class KeepSpace(PredicateConfig):
     def predicate(self, app, node):
-        if node.free_capacity[0] < 1024:
+        if app.demand[0] / node.init_capacity[0] > 0.5 and app.demand[0] / node.init_capacity[0] < 0.8:
             return False
         return True
 

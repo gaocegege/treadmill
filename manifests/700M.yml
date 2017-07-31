@@ -1,6 +1,6 @@
-cpu: 30%
-disk: 200M
-memory: 200M
+cpu: 10%
+disk: 100M
+memory: 700M
 services:
   - name: sleep
     command: '/bin/sleep 30s'
