@@ -1,0 +1,9 @@
+cpu: 30%
+disk: 200M
+memory: 200M
+services:
+  - name: sleep
+    command: '/bin/sleep 30s'
+    restart:
+      limit: 5
+      interval: 60

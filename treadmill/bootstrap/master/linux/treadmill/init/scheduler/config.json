@@ -2,6 +2,15 @@
   "predicates": [
     {
       "name": "match_app_constraints"
+    },
+    {
+      "name": "match_app_lifetime"
+    },
+    {
+      "name": "alive_servers"
+    },
+    {
+      "name": "keep_space"
     }
   ],
   "priorities": [
