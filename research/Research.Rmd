@@ -7,15 +7,29 @@ organization: Shanghai Jiao Tong University
 
 Powered by R Notebook
 
+## Problem
+
+Now the scheduler is hard coded, and it is hard to customize the behaviour of the scheduler. Although it has some built-in scheduling strategies, it is not enough.
+
 ## Perior state-of-the-art implemenetation
 
-The architecture of scheduler is simple, which has two strategies: spread and pack.
+The architecture of scheduler before this research is simple, which has two strategies: spread and pack.
 
 In the spread mode, the scheduler will select a new node to run the app. And spread mode is the default mode in treadmill.
 
 In the pack mode, the scheduler will select the same node until the node has no capacity.
 
-## Scheduler Architecture
+## Idea
+
+In this project, we introduces a scheduler framework to solve the problem. We learnt from a lot of cluster management tools such as Apache Mesos, Kubernetes, Borg, Omega and Sparrow. We decided to implement the logic similar to Kubernetes scheduler as the centralized scheduler.
+
+![](./img/algo.jpg)
+
+There are two phases during the process of scheduling in Kubernetes: predicates and priorities. Predicates are mandatory rules to schedule a new pod on the cluster. In the predicates phase, the scheduler will run the predicates in every node to check if the node is qualified for the application. 
+
+If the scheduler finds multiple machines fitting the predicates, the priorities will then be used to find what is the most suitable machine to run the pod.
+
+## Architecture
 
 ![](./img/Architecture.jpg)
 
@@ -23,13 +37,37 @@ In the pack mode, the scheduler will select the same node until the node has no 
 + **Priorities:**  Priorities includes all Prioritize algorithms. All Prioritize algorithms inherit from the base class PredicateConfig.
 + **Provider:**  Provider offers scheduling algorithms. Provider uses ```register_priorities(name, weight)``` and ```register_predicates (name)``` functions to select algorithms from Predicates and Priorities respectively. Provider then uses the selected algorithm to Predicate and Prioritize the schedulable nodes. Finally, Provider selects the fittest node
 
-## The scheduling algorithm
+![](./img/config.png)
 
-![](./img/algo.jpg)
+The config is in JSON, which contains two object: predicates and priorities. The admins could CRUD the items in these two objects to assemble their own scheduler for their workloads.
 
-+ First, Provider gets a set of schedulable nodes.
-+ Second, Provider applies "Predicate" to filter out inappropriate nodes.
-+ Finally, Provider applies "Prioritize" that rank the nodes that weren't filtered out. The node with the highest priority is chosen.
+## Case Study: Resource Fragmentation
+
+Resource fragmentation is a common problem during the scheduling process. We define a new predicate function to alleviate the problem.
+
+There are 4 servers:
+
+* 3G Failed Server(800M available)
+* 3G Server(800M available) * 2
+* 4G Server(1700M available)
+
+The resource in limited since these servers are VMs in one PM. The memory of the machine is 16G. If the code could work well in real environment, we could move the VMs out of vagrant.
+
+There are 5 applications:
+
+* 500M Application * 2
+* 800M Application * 2
+* 700M Application
+
+If we run the native scheduler in treadmill to schedule the 5 applications, the first two applications which require 500M memory will be assigned into the servers with 800M memory. And the two applications which require 800M memory will be assigned into the server with 1700M memory. Then There is no slot to place the last application with 700M memory. But ther are some spaces in every server. For example, 300M in every server with 800M memory.
+
+The key insight in this case is that We should not put the appliactions which requires more than half of the resource in the server, so we implement a new predicate function `keep_space` to solve the problem.
+
+`keep_space` will reject the applications which need more than half memory in the server and less than three quarters of the memory. The predicate function does not works well if the applications are similar jobs and most of them uses nearly three quarters of the memory. But this is another useage scenario, the admins could use other techniques such as adding priority funtions to solve the problem. But it is out of the case.
+
+The new scheduler with `keep_space` will assign the first two aplications to the server with 1700M memory. And the last appliaction then is placed in the same server. The problem has been alleviated.
+
+There are different traits in different workloads. Before solving the problem, we need to analyze the specific usage scenario. This is an example to illustrate the configurability.
 
 ## Evualuation
 
@@ -138,3 +176,10 @@ p <- plot_ly(data = dt, x = ~number, y = ~time, name = 'Flat Architecture', type
 p
 ```
 
+## Future Work
+
+https://github.com/kubernetes/kubernetes/issues/41600#issuecomment-281761465
+
+## Reference
+
+* [Comparison of Container Schedulers](https://medium.com/@ArmandGrillet/comparison-of-container-schedulers-c427f4f7421)
