@@ -58,9 +58,13 @@ echo Configuring local cell
     $TM admin ldap cell insert local --idx 1 --hostname master \
         --client-port 2181
 
-# Add server to the cell.
+# Add servers to the cell.
 /opt/s6/bin/s6-setuidgid treadmld \
-    $TM admin ldap server configure node --cell local
+    $TM admin ldap server configure node3 --cell local
+/opt/s6/bin/s6-setuidgid treadmld \
+    $TM admin ldap server configure node1 --cell local
+/opt/s6/bin/s6-setuidgid treadmld \
+    $TM admin ldap server configure node2 --cell local
 
 echo Extracting cell config
 
@@ -94,8 +98,14 @@ add_svc treadmill-master
 
 touch /home/vagrant/.ssh/config
 cat << EOF > /home/vagrant/.ssh/config
-Host node
-  IdentityFile ~/treadmill/vagrant/.vagrant/machines/node/virtualbox/private_key
+Host node1
+  IdentityFile ~/treadmill/vagrant/.vagrant/machines/node1/virtualbox/private_key
+
+Host node2
+  IdentityFile ~/treadmill/vagrant/.vagrant/machines/node2/virtualbox/private_key
+
+Host node3
+  IdentityFile ~/treadmill/vagrant/.vagrant/machines/node3/virtualbox/private_key
 EOF
 chmod 600 /home/vagrant/.ssh/config
 chown vagrant -R /home/vagrant/.ssh/config

@@ -17,17 +17,17 @@ class API(object):
     """Treadmill Cron REST api."""
 
     def __init__(self):
-        self.scheduler = None
-
-        def scheduler():
-            """Lazily get scheduler"""
-            if self.scheduler:
-                return self.scheduler
-
-            zkclient = context.GLOBAL.zk.conn
-            self.scheduler = cron.get_scheduler(zkclient)
-
-            return self.scheduler
+        # self.scheduler = None
+        #
+        # def scheduler():
+        #     """Lazily get scheduler"""
+        #     if self.scheduler:
+        #         return self.scheduler
+        #
+        #     zkclient = context.GLOBAL.zk.conn
+        #     self.scheduler = cron.get_scheduler(zkclient)
+        #
+        #     return self.scheduler
 
         def _list(match=None):
             """List configured instances."""
