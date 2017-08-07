@@ -1,0 +1,41 @@
+Hi, My name is GaoCe, and this is 任老师. I will present the optimization in treadmill scheduler. And this is the outline:
+
+First, we will show you the problems exists in the treadmill scheduler. And the idea to solve the problems. Then I will introduce our implementation, not details but something interesting. After that, there is a case study to show the functionality of the new scheduler framework and we have a section about evaluation. Finally, I will list the future work.
+
+Configurability & Extensibility, these are two problems that we found in treadmill scheduler. There are some built-in strategies in the scheduler, for example, spread and pack. But it is hard coded and it is hard to configure or extend the logic of the scheduler.
+
+To solve the problems, we learnt a lot from state-of-art implementations, such as Google Kubernetes, Google Omega, Apache Mesos, Apache Hadoop Yarn, Sparrow, and many other papers. Since the architecture of treadmill scheduler is centralized, aka monolithic, Kubernetes's scheduler architecture is more suitable. Then we design the similar logic as Kubernetes does in treadmill to be extendable and configurable. Kubernetes's predicate-priority pattern works well in treadmill by design.
+
+Then I will introduce the notion of Kubernetes's predicate-priority pattern. There are two phases during the process of scheduling in Kubernetes: predicates and priorities. Predicates are rules to schedule a new pod on the cluster. In the predicates phase, the scheduler will run the predicates in every node to check if the node is qualified for the application. If the scheduler finds multiple machines fitting the predicates, the priorities will then be used to find what is the most suitable machine to run the pod.
+
+I will give an intuitive understanding. We have some servers, and these circles represent different servers with different attributes. If there is a new application to be scheduled, it will be executed in two phases. First, in the predicates phase, we assume there are two predicates, C does not equal to 1; M does not equal to 2. And the scheduler will run the predicates on every node. The servers in red does not meet the requirements of the predicates.
+
+After the predicates phase, there are seven servers, which are qualified for the application. Then we need to find the best machine to run. We assume there are two priorities: C plus M and the the sum of indexes. There are three servers with the same score after the first priority function is executed. And After the second, we could find the best server to run the application.
+
+This is the key idea of the project. Then I will present how we implement the idea. The main change is the flattened servers. In the current design, the structure of the servers is assembled as a tree. And we flatten the tree. In the predicates phase, we run the predicate function in parallel, because there is no data race between in the execution in different nodes. In the priorities phase, we implement the map reduce pattern. There are some priority functions which will rescore depending on other servers' scores, just like page rank, so map reduce could have a better performance in multi-core architecture.
+
+And thanks to the flatten architecture of the servers, we do not have wandering tree problem, which means we will not update the status of the servers or buckets recursively.
+
+We have a case study, to show the functionality of the new framework. In the case, we have four servers: one failed server with 3G memory, two active servers with 3G memory, And the services in node will consume 2.2G memory, so the memory which is available to applications is eight hundred M. one active server with 4G memory, and one thousand and seven hundred M available to applications.
+
+We have five applications to be scheduled: two applications which requires five hundred M memory, two applications which requires eight hundred M memory, and one application which requires seven hundred M memory.
+
+With the native scheduler, it will place the first two applications in node1 and node2, then the two applications which requires eight hundred M memory will be placed in node3. There is no slot for the last application. But there is some space in each server, which is called resource fragment. This is the video to show the problem.
+
+With the new scheduler framework, we could implement a new predicate to avoid the problem. There are four predicates: the first two are built-in and the alive_servers will filter the inactive servers. Keep_space rejects the applications which will come with resource fragmentation. In detail, it will rejects the applications which require the memory larger than one half of the memory in the server, so the application with five hundred M memory will be rejected by this predicate.
+
+It is just a case study. The scheduler should be customized according to the workload. Maybe there are different scheduler configs used in different cells. But the configurability and extensibility will help the cluster admins to increase the throughput of the scheduler.
+
+And we evaluate the new framework in the benchmark test, unit test and simulator. There are many different benchmarks, you could get the detail from our technical report. And in the evaluation, we find that the performance is not as better as the native implementation, but we demonstrate that the most applications in treadmill are long-running. In the lifecycle of an application, there are four different parts. The most important are scheduling time and running time. Since applications are long-running, the overhead of the new scheduler framework could be hided, since it is lower than 1 percent of the overall time.
+
+Then I will summary the progress of development. There are three phases in this project. In phase 1, we struggle for the environment. The vagrant support is not ready at that time, then we have to run treadmill in native environment. There are lots of hacks we do to ship treadmill. After those hacks, we succeed to run applications in servers but it could not be stopped gracefully.
+
+In phase 2, we started to implement benchmarks and simulator, which is copied from sparrow's source code to test treadmill scheduler. Besides this, we begined to write technical report to present the result.
+
+In phase 3, the vagrant support contributed by ThoughtWorks is ready, then we started to develop the new scheduler framework.
+
+Finally, I will talk about the future work. There are lot of features we could do to optimize the scheduler, for example, node monitor, scheduler customization, advanced scheduler features and hybrid schedulers. Node monitor is the basis of many features. In treadmill, the resource utilization is calculated in scheduler, and it is not real. The modern cluster management requires precise utilization. Wi th node monitor, treadmill could implement more features such as resource overscription, fine-grained and precise scheduling, and furthermore, application lifecycle management.
+
+Now the framework we implement has limited support for scheduling algorithms since the scheduler could not get the real status of the servers. With node monitor, the schedling algorithms will be more precise. And the resource in the cluster could be overscripted. When the node's resource is not enough, the overscripted resource could be recycled.
+
+Now we support to configure the scheduler by providing a configuration file, it is not flexible. We could keep the configuration in zookeeper and watch it to update the behaviour of the scheduler. And there is another way to extend the behaviour of the scheduler inspired by Kubernetes: Scheduler Extender. Scheduler extender is a standalone HTTP endpoint, after the predicates and priorities phases, the scheduler could send the result to the extender, and the exntender could do their logic to re-predicate and re-priority the result. It could change the logic of scheduler in run time but also hurt the latency and throughput of the scheduler.
