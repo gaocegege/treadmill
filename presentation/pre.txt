@@ -39,3 +39,9 @@ Finally, I will talk about the future work. There are lot of features we could d
 Now the framework we implement has limited support for scheduling algorithms since the scheduler could not get the real status of the servers. With node monitor, the schedling algorithms will be more precise. And the resource in the cluster could be overscripted. When the node's resource is not enough, the overscripted resource could be recycled.
 
 Now we support to configure the scheduler by providing a configuration file, it is not flexible. We could keep the configuration in zookeeper and watch it to update the behaviour of the scheduler. And there is another way to extend the behaviour of the scheduler inspired by Kubernetes: Scheduler Extender. Scheduler extender is a standalone HTTP endpoint, after the predicates and priorities phases, the scheduler could send the result to the extender, and the exntender could do their logic to re-predicate and re-priority the result. It could change the logic of scheduler in run time but also hurt the latency and throughput of the scheduler.
+
+Besides this, there are some advanced schedling features, such as affinity, inter-affinity, anti-affinity and so on. It helps application to be scheduled precisely. And Now treadmill scheduler is monolithic, hybrid architecture is another way to increase the performance. The hybrid architecture is proposed in ATC 15 by Hawk and Mercury. Now there is no company claimed that they use the hybrid scheduler in production environment, but the paper shows that hybrid scheduler works well in general workload.
+
+And there are lots of features, such as suboptimal scheduling, concurrent schedulers and so on. There are lots of things to do.
+
+That's all, thank walt and xincheng for their guildance during the development, Thank you. Welcome questions.
